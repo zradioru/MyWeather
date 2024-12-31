@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ThingSpeak Channel Reader</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1 {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        #data-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            padding: 20px;
+        }
+
+        .widget {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            text-align: center;
+            width: 150px;
+            cursor: pointer;
+        }
+
+        .widget:hover {
+            background-color: #f0f0f0;
+        }
+
+        .widget h2 {
+            margin: 0;
+            font-size: 1.2em;
+            color: #555;
+        }
+
+        .widget p {
+            font-size: 1em;
+            margin: 10px 0 0;
+            color: #888;
+        }
+
+        .chart-container {
+            margin: 20px auto;
+            width: 90%;
+            max-width: 600px;
+            height: 400px;
+        }
+
+        #interval-selector {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        #interval-selector select {
+            padding: 5px;
+            font-size: 1em;
+        }
+
+        @media (max-width: 768px) {
+            .widget {
+                width: 120px;
+                padding: 15px;
+            }
+
+            .widget h2 {
+                font-size: 1em;
+            }
+
+            .widget p {
+                font-size: 0.9em;
+            }
+
+            .chart-container {
+                width: 95%;
+                height: 300px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .widget {
+                width: 100px;
+                padding: 10px;
+            }
+
+            .widget h2 {
+                font-size: 0.9em;
+            }
+
+            .widget p {
+                font-size: 0.8em;
+            }
+
+            .chart-container {
+                height: 250px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>ThingSpeak Channel Data</h1>
+    <div id="data-container">
+        <!-- Data will be populated here -->
+    </div>
+
+    <div id="interval-selector">
+        <label for="time-interval">Select time interval: </label>
+        <select id="time-interval" onchange="fetchAllCharts()">
+            <option value="1">Last 24 hours</option>
+            <option value="7">Last 7 days</option>
+            <option value="30">Last 30 days</option>
+        </select>
+    </div>
+
+    <div id="chart-container">
+        <div class="chart-container" id="temperatureChartContainer">
+            <canvas id="temperatureChart"></canvas>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js').then(registration => {
+                    console.log('ServiceWorker registered with scope:', registration.scope);
+                }).catch(error => {
+                    console.error('ServiceWorker registration failed:', error);
+                });
+            });
+        }
+
+        const channelID = '2797788';
+        const apiKey = 'JVBVQE2RNN98SQK3';
+
+        const fields = {
+            field1: { label: 'CO2 Levels', color: 'rgba(255, 99, 132, 1)', min: 300, max: 1800, chartId: 'co2Chart' },
+            field3: { label: 'Humidity', color: 'rgba(54, 162, 235, 1)', min: 0, max: 100, chartId: 'humidityChart' },
+            field4: { label: 'Pressure', color: 'rgba(255, 206, 86, 1)', min: 750, max: 780, chartId: 'pressureChart' },
+            field6: { label: 'Temperature', color: 'rgba(75, 192, 192, 1)', min: 0, max: 30, chartId: 'temperatureChart' }
+        };
+
+        async function fetchThingSpeakData() {
+            try {
+                const response = await fetch(`https://api.thingspeak.com/channels/${channelID}/feeds.json?results=1${apiKey ? `&api_key=${apiKey}` : ''}`);
+                const data = await response.json();
+
+                if (!data.feeds || data.feeds.length === 0) {
+                    document.getElementById('data-container').innerText = 'No data available';
+                    return;
+                }
+
+                const latestFeed = data.feeds[0];
+                let htmlContent = '';
+
+                for (const [key, { label, chartId }] of Object.entries(fields)) {
+                    let fieldValue = latestFeed[key];
+                    if (fieldValue) fieldValue = parseFloat(fieldValue).toFixed(1);
+
+                    htmlContent += `
+                        <div class="widget" onclick="showChart('${chartId}', '${key}')">
+                            <h2>${label}</h2>
+                            <p>${fieldValue || 'No data'}</p>
+                        </div>`;
+                }
+
+                document.getElementById('data-container').innerHTML = htmlContent;
+
+                // Initially load temperature chart
+                fetchChartData('field6');
+
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                document.getElementById('data-container').innerText = 'Error fetching data';
+            }
+        }
+
+        async function fetchChartData(fieldKey) {
+            const days = document.getElementById('time-interval').value;
+            const { label, color, min, max, chartId } = fields[fieldKey];
+
+            const apiUrl = `https://api.thingspeak.com/channels/${channelID}/fields/${fieldKey.slice(-1)}.json?days=${days}${apiKey ? `&api_key=${apiKey}` : ''}`;
+
+            try {
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+
+                if (!data.feeds || data.feeds.length === 0) {
+                    console.error(`No data available for ${label}`);
+                    return;
+                }
+
+                const chartData = data.feeds.map(feed => ({
+                    x: new Date(feed.created_at),
+                    y: parseFloat(feed[fieldKey])
+                }));
+
+                renderChart(chartData, chartId, label, color, min, max);
+
+            } catch (error) {
+                console.error(`Error fetching data for ${label}:`, error);
+            }
+        }
+
+        function renderChart(data, chartId, label, color, min, max) {
+            const container = document.getElementById('chart-container');
+            container.innerHTML = `<div class="chart-container"><canvas id="${chartId}"></canvas></div>`;
+
+            const ctx = document.getElementById(chartId).getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: [{
+                        label,
+                        data,
+                        borderColor: color,
+                        backgroundColor: color.replace('1)', '0.2)')
+                    }]
+                },
+                options: {
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                unit: 'day'
+                            },
+                            title: {
+                                display: true,
+                                text: 'Time'
+                            }
+                        },
+                        y: {
+                            min,
+                            max,
+                            title: {
+                                display: true,
+                                text: label
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function showChart(chartId, fieldKey) {
+            fetchChartData(fieldKey);
+        }
+
+        fetchThingSpeakData();
+    </script>
+</body>
+</html>
