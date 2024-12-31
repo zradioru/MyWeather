@@ -1,9 +1,7 @@
 const CACHE_NAME = 'thingspeak-pwa-cache-v1';
 const urlsToCache = [
-    '/',
-    '/index.html',
-    '/styles.css',
-    '/script.js',
+    './',
+    './index.html',
     'https://cdn.jsdelivr.net/npm/chart.js',
     'https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns',
 ];
