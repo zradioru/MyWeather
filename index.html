@@ -87,7 +87,7 @@
 
             .chart-container {
                 width: 95%;
-                height: 300px;
+                height: 0px;
             }
         }
 
@@ -150,9 +150,9 @@
 
         const fields = {
             field1: { label: 'CO2 Levels', color: 'rgba(255, 99, 132, 1)', min: 300, max: 1800, chartId: 'co2Chart' },
-            field3: { label: 'Humidity', color: 'rgba(54, 162, 235, 1)', min: 0, max: 100, chartId: 'humidityChart' },
+            field3: { label: 'Humidity', color: 'rgba(54, 162, 235, 1)', min: 20, max: 60, chartId: 'humidityChart' },
             field4: { label: 'Pressure', color: 'rgba(255, 206, 86, 1)', min: 750, max: 780, chartId: 'pressureChart' },
-            field6: { label: 'Temperature', color: 'rgba(75, 192, 192, 1)', min: 0, max: 30, chartId: 'temperatureChart' }
+            field6: { label: 'Temperature', color: 'rgba(75, 192, 192, 1)', min: 15, max: 30, chartId: 'temperatureChart' }
         };
 
         async function fetchThingSpeakData() {
