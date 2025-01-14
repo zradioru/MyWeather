@@ -262,6 +262,25 @@
         }
 
         fetchThingSpeakData();
+        if ('serviceWorker' in navigator && 'PushManager' in window) {
+    navigator.serviceWorker.register('./service-worker.js').then(registration => {
+        registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: 'BBofecnQh2X7CJGTUhPvUbsUIrYFg08No4tAjJRbLDLKFG2vnl8G5B7t0oafxx1Un0zF7tz-3H5WhLDD8q1WaQA',
+        }).then(subscription => {
+            fetch('https://your-render-app.onrender.com/subscribe', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(subscription),
+            });
+        }).catch(error => {
+            console.error('Ошибка подписки на push-уведомления:', error);
+        });
+    });
+}
+
     </script>
 </body>
 </html>
