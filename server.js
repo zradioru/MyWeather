@@ -1,11 +1,12 @@
 const express = require('express');
 const webPush = require('web-push');
 const fetch = require('node-fetch');
+const path = require('path');
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
-// VAPID ключи (сгенерируйте с помощью web-push)
+// VAPID ключи
 const vapidKeys = {
     publicKey: 'BBofecnQh2X7CJGTUhPvUbsUIrYFg08No4tAjJRbLDLKFG2vnl8G5B7t0oafxx1Un0zF7tz-3H5WhLDD8q1WaQA',
     privateKey: 'H5elu6StSpzOK6MtSf82kqnBcuvWpVWYyyRg0Umv4JU',
@@ -21,6 +22,14 @@ const subscriptions = [];
 
 app.use(express.json());
 
+// Middleware для обслуживания статических файлов
+app.use(express.static(path.join(__dirname)));
+
+// Отправка index.html для корневого маршрута
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
 // Эндпоинт для подписки на push-уведомления
 app.post('/subscribe', (req, res) => {
     const subscription = req.body;
@@ -28,7 +37,7 @@ app.post('/subscribe', (req, res) => {
     res.status(201).json({});
 });
 
-// Функция для проверки данных из ThingSpeak
+// Пример проверки ThingSpeak и отправки уведомлений
 async function checkThingSpeak() {
     const apiUrl = 'https://api.thingspeak.com/channels/2797788/fields/6/last.json?api_key=JVBVQE2RNN98SQK3';
     try {
@@ -44,7 +53,6 @@ async function checkThingSpeak() {
     }
 }
 
-// Функция для отправки push-уведомлений
 function sendPushNotifications(message) {
     subscriptions.forEach(subscription => {
         webPush.sendNotification(subscription, JSON.stringify({
@@ -57,16 +65,9 @@ function sendPushNotifications(message) {
     });
 }
 
-// Проверка данных каждые 5 минут
+// Проверка каждые 5 минут
 setInterval(checkThingSpeak, 300000);
 
 app.listen(port, () => {
     console.log(`Сервер запущен на http://localhost:${port}`);
 });
-
-const path = require('path');
-
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
-
