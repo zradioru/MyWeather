@@ -1,7 +1,7 @@
 {
   "name": "ThingSpeak PWA",
   "short_name": "ThingSpeak",
-  "start_url": "https://zradioru.github.io/MyWeather/index.html",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#4caf50",
