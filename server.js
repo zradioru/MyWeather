@@ -63,3 +63,10 @@ setInterval(checkThingSpeak, 300000);
 app.listen(port, () => {
     console.log(`Сервер запущен на http://localhost:${port}`);
 });
+
+const path = require('path');
+
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
